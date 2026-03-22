@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Octave Layout Designer v1</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;font-size:13px;color:#222;background:#f0f2f5;padding:1rem}
+.wrap{display:flex;gap:1rem;flex-wrap:wrap;max-width:1300px;margin:0 auto}
+.panel{flex:1;min-width:270px;max-width:310px;background:#fff;border:1px solid #ddd;border-radius:8px;padding:0.8rem}
+.preview{flex:2;min-width:340px;background:#fff;border:1px solid #ddd;border-radius:8px;padding:0.8rem}
+h1{font-size:15px;font-weight:700;margin-bottom:0.8rem;color:#111;text-align:center}
+h3{font-size:12px;font-weight:600;margin-bottom:5px;color:#333;margin-top:8px}
+.row{display:flex;align-items:center;gap:5px;margin-bottom:4px}
+label{font-size:11px;color:#555;min-width:100px;flex-shrink:0}
+input[type=range]{flex:1;min-width:50px;accent-color:#d9531e}
+.val{font-size:11px;font-weight:600;min-width:32px;text-align:right;color:#111}
+input[type=number]{width:56px;padding:2px 4px;border:1px solid #ccc;border-radius:4px;font-size:11px}
+input[type=text]{flex:1;padding:2px 4px;border:1px solid #ccc;border-radius:4px;font-size:11px}
+input[type=checkbox]{width:13px;height:13px;accent-color:#d9531e}
+input[type=color]{width:28px;height:22px;border:none;cursor:pointer;border-radius:3px}
+.sep{height:1px;background:#eee;margin:6px 0}
+canvas{width:100%;border:1px solid #ddd;border-radius:6px;background:#fff;display:block}
+.code-box{margin-top:8px;background:#1e1e1e;border:1px solid #333;border-radius:6px;padding:8px;font-family:monospace;font-size:10.5px;white-space:pre-wrap;word-break:break-all;max-height:300px;overflow-y:auto;color:#d4d4d4}
+.btn{padding:4px 12px;border:1px solid #ccc;border-radius:4px;background:#fff;cursor:pointer;font-size:11px}
+.btn:hover{background:#f0f0f0}
+.btn-oct{background:#d9531e;color:#fff;border-color:#d9531e}
+.btn-oct:hover{background:#b8441a}
+.sub{font-size:10px;color:#888;margin-bottom:3px}
+select{padding:2px 4px;border:1px solid #ccc;border-radius:4px;font-size:11px;background:#fff}
+.tabs{display:flex;gap:3px;margin-bottom:8px;flex-wrap:wrap}
+.tab{padding:3px 9px;border:1px solid #ccc;border-radius:4px;cursor:pointer;font-size:11px;background:#f5f5f5}
+.tab.active{background:#d9531e;color:#fff;border-color:#d9531e}
+.tc{display:none}.tc.active{display:block}
+.sec{background:#f8f8f8;border:1px solid #e0e0e0;border-radius:5px;padding:6px;margin-bottom:5px}
+.sech{font-size:11px;font-weight:600;margin-bottom:5px;color:#333}
+.badge{font-size:10px;padding:2px 7px;border-radius:10px;background:#fce8e0;color:#d9531e;font-weight:600}
+.toolbar{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center}
+.item-row{display:flex;gap:3px;align-items:center;margin-bottom:3px;background:#fff;border:1px solid #e0e0e0;border-radius:4px;padding:4px}
+.xbtn{font-size:9px;padding:1px 4px;border:1px solid #ccc;border-radius:3px;cursor:pointer;background:#fff;flex-shrink:0}
+.add-btn{font-size:10px;padding:2px 8px;border-radius:3px;cursor:pointer;width:100%;margin-top:3px;background:#fff}
+.cmap-prev{height:14px;border-radius:4px;margin:4px 0;border:0.5px solid #ccc}
+.oct-badge{background:#fce8e0;color:#d9531e;font-size:10px;padding:1px 6px;border-radius:8px;font-weight:600;margin-left:6px}
+</style>
+</head>
+<body>
+<h1>Octave Figure Layout Designer <span class="oct-badge">Octave</span></h1>
+<div class="wrap">
+
+<div class="panel">
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('layout')">Layout</div>
+    <div class="tab" onclick="switchTab('axes')">Axes</div>
+    <div class="tab" onclick="switchTab('style')">Style</div>
+  </div>
+
+  <!-- LAYOUT TAB -->
+  <div class="tc active" id="tab-layout">
+    <h3>Figure size</h3>
+    <div class="row"><label>Preset</label>
+      <select id="fig-preset" onchange="applyPreset()">
+        <option value="">Custom</option>
+        <option value="8.5">IOP single (8.5cm)</option>
+        <option value="15" selected>IOP double (15cm)</option>
+        <option value="8.9">Nature single (89mm)</option>
+        <option value="18.3">Nature double (183mm)</option>
+      </select>
+    </div>
+    <div class="row"><label>Width (cm)</label><input type="number" id="fig-w" value="15" step="0.5" min="4" max="30" oninput="draw()"></div>
+    <div class="row"><label>Aspect (h/w)</label><input type="range" id="fig-asp" min="0.3" max="2.0" value="0.75" step="0.05" oninput="n('fig-asp-v',this.value,2);draw()"><span class="val" id="fig-asp-v">0.75</span></div>
+
+    <div class="sep"></div>
+    <h3>Grid</h3>
+    <div class="row"><label>Rows</label><input type="range" id="nrows" min="1" max="5" value="2" step="1" oninput="n('nrows-v',this.value,0);draw()"><span class="val" id="nrows-v">2</span></div>
+    <div class="row"><label>Cols</label><input type="range" id="ncols" min="1" max="5" value="2" step="1" oninput="n('ncols-v',this.value,0);draw()"><span class="val" id="ncols-v">2</span></div>
+    <div class="row"><label>hspace</label><input type="range" id="hspace" min="0.02" max="0.5" value="0.12" step="0.01" oninput="n('hspace-v',this.value,2);draw()"><span class="val" id="hspace-v">0.12</span></div>
+    <div class="row"><label>wspace</label><input type="range" id="wspace" min="0.02" max="0.5" value="0.10" step="0.01" oninput="n('wspace-v',this.value,2);draw()"><span class="val" id="wspace-v">0.10</span></div>
+    <div class="sub" style="margin-top:2px">hspace/wspace = gap between panels (fraction of panel size)</div>
+
+    <div class="sep"></div>
+    <h3>Height ratios <span class="sub">(per row)</span></h3>
+    <div id="height-ratios"></div>
+    <h3>Width ratios <span class="sub">(per col)</span></h3>
+    <div id="width-ratios"></div>
+
+    <div class="sep"></div>
+    <h3>Colorbar</h3>
+    <div class="row"><label>Enable</label><input type="checkbox" id="cbar-on" onchange="g('cbar-opts').style.display=this.checked?'block':'none';draw()"></div>
+    <div id="cbar-opts" style="display:none">
+      <div class="row"><label>Orientation</label>
+        <select id="cbar-orient" onchange="draw()">
+          <option value="vertical">Vertical (right)</option>
+          <option value="horizontal">Horizontal (top/bottom)</option>
+        </select>
+      </div>
+      <div class="row"><label>Location</label>
+        <select id="cbar-loc" onchange="draw()">
+          <option value="eastoutside">Right (eastoutside)</option>
+          <option value="westoutside">Left (westoutside)</option>
+          <option value="northoutside">Top (northoutside)</option>
+          <option value="southoutside">Bottom (southoutside)</option>
+          <option value="east">Right inside</option>
+          <option value="west">Left inside</option>
+          <option value="north">Top inside</option>
+          <option value="south">Bottom inside</option>
+        </select>
+      </div>
+      <div class="sep"></div>
+      <h3>Colormap</h3>
+      <div class="row"><label>Type</label>
+        <select id="cmap-type" onchange="g('cmap-bi').style.display=this.value==='builtin'?'block':'none';g('cmap-cu').style.display=this.value==='custom'?'block':'none';draw()">
+          <option value="builtin">Built-in</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div id="cmap-bi">
+        <div class="row"><label>Name</label>
+          <select id="cmap-name" onchange="updateCmapPrev();draw()">
+            <optgroup label="Sequential">
+              <option value="viridis" selected>viridis</option>
+              <option value="plasma">plasma</option>
+              <option value="inferno">inferno</option>
+              <option value="magma">magma</option>
+              <option value="hot">hot</option>
+              <option value="copper">copper</option>
+              <option value="bone">bone</option>
+              <option value="gray">gray</option>
+              <option value="winter">winter</option>
+              <option value="summer">summer</option>
+              <option value="autumn">autumn</option>
+              <option value="spring">spring</option>
+            </optgroup>
+            <optgroup label="Diverging">
+              <option value="coolwarm">coolwarm</option>
+              <option value="RdBu">RdBu</option>
+              <option value="seismic">seismic</option>
+              <option value="bwr">bwr</option>
+            </optgroup>
+            <optgroup label="Other">
+              <option value="jet">jet</option>
+              <option value="hsv">hsv</option>
+              <option value="parula">parula (Octave default)</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="row"><label>Reverse</label><input type="checkbox" id="cmap-rev" onchange="updateCmapPrev();draw()"></div>
+        <div class="row"><label>Crop start</label><input type="range" id="cmap-s" min="0" max="0.49" value="0" step="0.01" oninput="n('cmap-sv',this.value,2);updateCmapPrev();draw()"><span class="val" id="cmap-sv">0.00</span></div>
+        <div class="row"><label>Crop end</label><input type="range" id="cmap-e" min="0.51" max="1" value="1" step="0.01" oninput="n('cmap-ev',this.value,2);updateCmapPrev();draw()"><span class="val" id="cmap-ev">1.00</span></div>
+        <div class="cmap-prev" id="cmap-prev-bi"></div>
+      </div>
+      <div id="cmap-cu" style="display:none">
+        <div class="sub">Color stops (min → max)</div>
+        <div id="cmap-stops"></div>
+        <button class="add-btn" style="border:1px solid #59a14f;color:#59a14f" onclick="addStop()">+ Add stop</button>
+        <div class="cmap-prev" id="cmap-prev-cu"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AXES TAB -->
+  <div class="tc" id="tab-axes">
+    <div class="row"><label>Panel</label><select id="ax-sel" onchange="buildAxEd()"></select></div>
+    <div id="ax-ed" style="max-height:520px;overflow-y:auto"></div>
+  </div>
+
+  <!-- STYLE TAB -->
+  <div class="tc" id="tab-style">
+    <h3>Panel labels</h3>
+    <div class="row"><label>Show</label><input type="checkbox" id="show-lbl" checked onchange="draw()"></div>
+    <div class="row"><label>Style</label>
+      <select id="lbl-style" onchange="draw()">
+        <option value="a)">a) b) c)...</option>
+        <option value="(a)">(a) (b)...</option>
+        <option value="A)">A) B) C)...</option>
+        <option value="1)">1) 2) 3)...</option>
+      </select>
+    </div>
+    <div class="row"><label>Position</label>
+      <select id="lbl-pos" onchange="draw()">
+        <option value="tl">Top left (inside)</option>
+        <option value="tr">Top right (inside)</option>
+        <option value="title">Title (outside)</option>
+      </select>
+    </div>
+    <div class="sep"></div>
+    <h3>Font settings</h3>
+    <div class="row"><label>Font size</label><input type="number" id="rc-fs" value="10" step="1" min="6" max="20" oninput="draw()"></div>
+    <div class="row"><label>Label size</label><input type="number" id="rc-ls" value="10" step="1" min="6" max="20" oninput="draw()"></div>
+    <div class="row"><label>Tick size</label><input type="number" id="rc-ts" value="9" step="1" min="6" max="20" oninput="draw()"></div>
+    <div class="row"><label>Legend size</label><input type="number" id="rc-lgs" value="8" step="1" min="6" max="20" oninput="draw()"></div>
+    <div class="row"><label>Line width</label><input type="number" id="rc-lw" value="1.2" step="0.1" min="0.3" max="4" oninput="draw()"></div>
+    <div class="row"><label>Axes linewidth</label><input type="number" id="rc-alw" value="0.8" step="0.1" min="0.3" max="3" oninput="draw()"></div>
+    <div class="sep"></div>
+    <h3>Output</h3>
+    <div class="row"><label>Format</label>
+      <select id="out-fmt" onchange="draw()">
+        <option value="pdf">pdf</option>
+        <option value="png">png</option>
+        <option value="eps">eps</option>
+        <option value="svg">svg</option>
+      </select>
+    </div>
+    <div class="row"><label>Resolution (dpi)</label><input type="number" id="rc-dpi" value="300" step="100" min="72" max="600" oninput="draw()"></div>
+    <div class="row"><label>Filename</label><input type="text" id="out-name" value="figure" oninput="draw()"></div>
+  </div>
+</div>
+
+<!-- PREVIEW -->
+<div class="preview">
+  <h3>Preview <span class="badge" id="panel-cnt">4 panels</span></h3>
+  <canvas id="canvas" height="360"></canvas>
+  <div class="toolbar">
+    <button class="btn btn-oct" onclick="copyCode()">Copy code</button>
+    <button class="btn" onclick="resetAll()">Reset</button>
+  </div>
+  <div class="code-box" id="code-out"></div>
+</div>
+</div>
+
+<script>
+const COLORS=['#4e79a7','#f28e2b','#e15759','#76b7b2','#59a14f','#edc948','#b07aa1','#ff9da7','#9c755f','#bab0ac'];
+const PAD={t:18,r:16,b:16,l:16};
+let hrArr=[],wrArr=[],axCfg={};
+let cmapStops=[{color:'#000080'},{color:'#ff0000'},{color:'#ffff00'}];
+
+const CMAP_GRADS={
+  viridis:'#440154,#31688e,#35b779,#fde725',
+  plasma:'#0d0887,#7e03a8,#ed7953,#f0f921',
+  inferno:'#000004,#56106e,#f98e09,#fcffa4',
+  magma:'#000004,#51127c,#fd9567,#fcfdbf',
+  hot:'#000000,#ff0000,#ffff00,#ffffff',
+  copper:'#000000,#7f4f32,#ffc87f',
+  bone:'#000000,#5c5c7f,#a5a5c8,#ffffff',
+  gray:'#000000,#808080,#ffffff',
+  winter:'#0000ff,#00ff80',
+  summer:'#008066,#ffff66',
+  autumn:'#ff0000,#ffff00',
+  spring:'#ff00ff,#ffff00',
+  coolwarm:'#3b4cc0,#dddcdc,#b40426',
+  RdBu:'#67001f,#f4a582,#f7f7f7,#92c5de,#053061',
+  seismic:'#00004d,#0000ff,#ffffff,#ff0000,#7f0000',
+  bwr:'#0000ff,#ffffff,#ff0000',
+  jet:'#0000aa,#00aaff,#aaff55,#ffaa00,#aa0000',
+  hsv:'#ff0000,#00ff00,#0000ff,#ff0000',
+  parula:'#352a87,#0f5cdd,#00b5a6,#ffc343,#f9fb0e',
+};
+
+function g(id){return document.getElementById(id)}
+function fv(id){return parseFloat(g(id).value)}
+function iv(id){return parseInt(g(id).value)}
+function n(id,val,dec){g(id).textContent=parseFloat(val).toFixed(dec)}
+function key(r,c){return r+','+c}
+
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tc').forEach(t=>t.classList.remove('active'));
+  document.querySelector(`.tab[onclick="switchTab('${name}')"]`).classList.add('active');
+  g('tab-'+name).classList.add('active');
+}
+
+function applyPreset(){
+  const v=g('fig-preset').value;
+  if(v) g('fig-w').value=v;
+  draw();
+}
+
+function ensureCfg(r,c){
+  const k=key(r,c);
+  if(!axCfg[k]) axCfg[k]={
+    xlabel:'',ylabel:'',xlim:'',ylim:'',
+    xticks:'auto',xticksVal:'',yticks:'auto',yticksVal:'',
+    texts:[],arrows:[],
+    legend:{show:false,loc:'northeast',fontsize:'8',handles:[]}
+  };
+  return axCfg[k];
+}
+
+function buildRatios(contId,arr,prefix,n){
+  const c=g(contId);c.innerHTML='';arr.length=0;
+  for(let i=0;i<n;i++){
+    const row=document.createElement('div');row.className='row';
+    const lb=document.createElement('label');lb.textContent=prefix+' '+i;lb.style.minWidth='80px';
+    const inp=document.createElement('input');inp.type='number';inp.value=1;inp.step=0.1;inp.min=0.1;inp.style.width='54px';
+    inp.addEventListener('input',draw);arr.push(inp);
+    row.appendChild(lb);row.appendChild(inp);c.appendChild(row);
+  }
+}
+function getRatios(arr){return arr.map(i=>parseFloat(i.value)||1)}
+
+function getLabel(idx){
+  const s=g('lbl-style').value;
+  if(s==='a)') return String.fromCharCode(97+idx)+')';
+  if(s==='(a)') return '('+String.fromCharCode(97+idx)+')';
+  if(s==='A)') return String.fromCharCode(65+idx)+')';
+  return (idx+1)+')';
+}
+
+function buildAxSelect(){
+  const nr=iv('nrows'),nc=iv('ncols');
+  const sel=g('ax-sel'),prev=sel.value;sel.innerHTML='';
+  for(let r=0;r<nr;r++) for(let c=0;c<nc;c++){
+    const o=document.createElement('option');
+    o.value=key(r,c);o.textContent=`(${r},${c})`;
+    if(o.value===prev) o.selected=true;
+    sel.appendChild(o);
+  }
+  g('panel-cnt').textContent=(nr*nc)+' panels';
+  buildAxEd();
+}
+
+function buildAxEd(){
+  const k=g('ax-sel').value||'0,0';
+  const [r,c]=k.split(',').map(Number);
+  const cfg=ensureCfg(r,c);
+  const ed=g('ax-ed');ed.innerHTML='';
+
+  function mkRow(lbl,el){
+    const d=document.createElement('div');d.className='row';
+    const l=document.createElement('label');l.textContent=lbl;l.style.minWidth='90px';
+    d.appendChild(l);d.appendChild(el);return d;
+  }
+  function txtInp(field,ph){
+    const i=document.createElement('input');i.type='text';i.placeholder=ph;i.value=cfg[field]||'';
+    i.addEventListener('input',()=>{cfg[field]=i.value;draw()});return i;
+  }
+  function selInp(field,opts){
+    const s=document.createElement('select');
+    opts.forEach(o=>{const op=document.createElement('option');op.value=o;op.textContent=o;if(cfg[field]===o)op.selected=true;s.appendChild(op)});
+    s.addEventListener('change',()=>{cfg[field]=s.value;buildAxEd();draw()});return s;
+  }
+
+  // basic
+  const sec0=document.createElement('div');sec0.className='sec';
+  const t0=document.createElement('div');t0.className='sech';t0.textContent=`Panel (${r},${c}) → ax${r*iv('ncols')+c+1}`;
+  sec0.appendChild(t0);
+  sec0.appendChild(mkRow('xlabel',txtInp('xlabel','e.g. Frequency (cm^{-1})')));
+  sec0.appendChild(mkRow('ylabel',txtInp('ylabel','e.g. Intensity')));
+  sec0.appendChild(mkRow('xlim',txtInp('xlim','e.g. 0, 1600')));
+  sec0.appendChild(mkRow('ylim',txtInp('ylim','e.g. -1, 1800')));
+  sec0.appendChild(mkRow('xticks',selInp('xticks',['auto','none','custom'])));
+  if(cfg.xticks==='custom') sec0.appendChild(mkRow('xtick vals',txtInp('xticksVal','0, 400, 800')));
+  sec0.appendChild(mkRow('yticks',selInp('yticks',['auto','none','custom'])));
+  if(cfg.yticks==='custom') sec0.appendChild(mkRow('ytick vals',txtInp('yticksVal','0, 500, 1500')));
+  ed.appendChild(sec0);
+
+  // TEXT
+  const secT=document.createElement('div');secT.className='sec';
+  const tT=document.createElement('div');tT.className='sech';tT.textContent='Text annotations';
+  secT.appendChild(tT);
+  cfg.texts.forEach((t,i)=>{
+    const row=document.createElement('div');row.className='item-row';row.style.flexWrap='wrap';
+    function ti(f,ph,w){
+      const inp=document.createElement('input');inp.type='text';inp.placeholder=ph;inp.value=t[f]||'';
+      inp.style.cssText=`width:${w||'60px'};padding:1px 3px;border:1px solid #ccc;border-radius:3px;font-size:10px`;
+      inp.addEventListener('input',()=>{t[f]=inp.value;draw()});return inp;
+    }
+    const r1=document.createElement('div');r1.style.cssText='display:flex;gap:2px;width:100%;margin-bottom:2px';
+    const lbT=document.createElement('span');lbT.textContent='text:';lbT.style.cssText='font-size:10px;color:#555;line-height:22px';
+    r1.appendChild(lbT);r1.appendChild(ti('text','SP','100%'));row.appendChild(r1);
+    const r2=document.createElement('div');r2.style.cssText='display:flex;gap:3px;align-items:center;flex-wrap:wrap';
+    ['x','y','fs'].forEach(f=>{
+      const lb=document.createElement('span');lb.textContent=f+':';lb.style.cssText='font-size:10px;color:#555';
+      r2.appendChild(lb);r2.appendChild(ti(f,f==='fs'?'10':f==='x'?'0.05':'0.95','42px'));
+    });
+    const bCb=document.createElement('input');bCb.type='checkbox';bCb.checked=t.bold||false;
+    bCb.addEventListener('change',()=>{t.bold=bCb.checked;draw()});
+    const bLb=document.createElement('span');bLb.textContent='B';bLb.style.cssText='font-size:10px;font-weight:700;color:#555';
+    const ci=document.createElement('input');ci.type='color';ci.value=t.color||'#000000';ci.style.cssText='width:22px;height:18px;border:none;cursor:pointer';
+    ci.addEventListener('input',()=>{t.color=ci.value;draw()});
+    const del=document.createElement('button');del.textContent='✕';del.className='xbtn';del.onclick=()=>{cfg.texts.splice(i,1);buildAxEd();draw()};
+    r2.appendChild(bCb);r2.appendChild(bLb);r2.appendChild(ci);r2.appendChild(del);
+    row.appendChild(r2);secT.appendChild(row);
+  });
+  const addT=document.createElement('button');addT.textContent='+ Add text';addT.className='add-btn';addT.style.cssText+='border:1px solid #d9531e;color:#d9531e';
+  addT.onclick=()=>{cfg.texts.push({text:'',x:'0.05',y:'0.95',fs:'10',bold:false,color:'#000000'});buildAxEd();draw()};
+  secT.appendChild(addT);ed.appendChild(secT);
+
+  // ARROWS
+  const secA=document.createElement('div');secA.className='sec';
+  const tA=document.createElement('div');tA.className='sech';tA.textContent='Arrow annotations';
+  secA.appendChild(tA);
+  cfg.arrows.forEach((ar,i)=>{
+    const row=document.createElement('div');row.className='item-row';row.style.flexWrap='wrap';
+    function ai(f,ph){
+      const inp=document.createElement('input');inp.type='text';inp.placeholder=ph;inp.value=ar[f]||'';
+      inp.style.cssText='width:44px;padding:1px 3px;border:1px solid #ccc;border-radius:3px;font-size:10px';
+      inp.addEventListener('input',()=>{ar[f]=inp.value;draw()});return inp;
+    }
+    const r1=document.createElement('div');r1.style.cssText='display:flex;gap:2px;align-items:center;flex-wrap:wrap;width:100%;margin-bottom:2px';
+    [['x1','x start'],['y1','y start'],['x2','x end'],['y2','y end']].forEach(([f,ph])=>{
+      const lb=document.createElement('span');lb.textContent=ph.split(' ')[1]+':';lb.style.cssText='font-size:10px;color:#555';
+      r1.appendChild(lb);r1.appendChild(ai(f,ph));
+    });
+    row.appendChild(r1);
+    const r2=document.createElement('div');r2.style.cssText='display:flex;gap:3px;align-items:center;width:100%';
+    const lbLbl=document.createElement('span');lbLbl.textContent='label:';lbLbl.style.cssText='font-size:10px;color:#555';
+    const lbInp=document.createElement('input');lbInp.type='text';lbInp.placeholder='optional';lbInp.value=ar.label||'';
+    lbInp.style.cssText='flex:1;padding:1px 3px;border:1px solid #ccc;border-radius:3px;font-size:10px';
+    lbInp.addEventListener('input',()=>{ar.label=lbInp.value;draw()});
+    const ci=document.createElement('input');ci.type='color';ci.value=ar.color||'#000000';ci.style.cssText='width:22px;height:18px;border:none;cursor:pointer';
+    ci.addEventListener('input',()=>{ar.color=ci.value;draw()});
+    const del=document.createElement('button');del.textContent='✕';del.className='xbtn';del.onclick=()=>{cfg.arrows.splice(i,1);buildAxEd();draw()};
+    r2.appendChild(lbLbl);r2.appendChild(lbInp);r2.appendChild(ci);r2.appendChild(del);
+    row.appendChild(r2);secA.appendChild(row);
+  });
+  const addA=document.createElement('button');addA.textContent='+ Add arrow';addA.className='add-btn';addA.style.cssText+='border:1px solid #e15759;color:#e15759';
+  addA.onclick=()=>{cfg.arrows.push({x1:'0.1',y1:'0.5',x2:'0.4',y2:'0.8',label:'',color:'#000000'});buildAxEd();draw()};
+  secA.appendChild(addA);ed.appendChild(secA);
+
+  // LEGEND
+  const secL=document.createElement('div');secL.className='sec';
+  const tL=document.createElement('div');tL.className='sech';tL.textContent='Legend';
+  secL.appendChild(tL);
+  const showR=document.createElement('div');showR.className='row';
+  const sLb=document.createElement('label');sLb.textContent='Enable';sLb.style.minWidth='90px';
+  const sCb=document.createElement('input');sCb.type='checkbox';sCb.checked=cfg.legend.show||false;
+  sCb.addEventListener('change',()=>{cfg.legend.show=sCb.checked;buildAxEd();draw()});
+  showR.appendChild(sLb);showR.appendChild(sCb);secL.appendChild(showR);
+
+  if(cfg.legend.show){
+    function legRow(lbl,el){const d=document.createElement('div');d.className='row';const l=document.createElement('label');l.textContent=lbl;l.style.minWidth='90px';d.appendChild(l);d.appendChild(el);return d;}
+    const locSel=document.createElement('select');locSel.style.cssText='font-size:10px;padding:2px';
+    ['northeast','northwest','southeast','southwest','north','south','east','west','best'].forEach(o=>{
+      const op=document.createElement('option');op.value=o;op.textContent=o;if((cfg.legend.loc||'northeast')===o)op.selected=true;locSel.appendChild(op)});
+    locSel.addEventListener('change',()=>{cfg.legend.loc=locSel.value;draw()});
+    secL.appendChild(legRow('location',locSel));
+    const fsInp=document.createElement('input');fsInp.type='number';fsInp.value=cfg.legend.fontsize||'8';fsInp.style.width='54px';
+    fsInp.addEventListener('input',()=>{cfg.legend.fontsize=fsInp.value;draw()});
+    secL.appendChild(legRow('fontsize',fsInp));
+
+    cfg.legend.handles.forEach((h,i)=>{
+      const row=document.createElement('div');row.className='item-row';
+      const ci=document.createElement('input');ci.type='color';ci.value=h.color||'#4e79a7';ci.style.cssText='width:22px;height:18px;border:none;cursor:pointer;flex-shrink:0';
+      ci.addEventListener('input',()=>{h.color=ci.value;draw()});
+      const lsSel=document.createElement('select');lsSel.style.cssText='font-size:10px;padding:1px;width:50px;flex-shrink:0';
+      ['-','--','-.',':','none'].forEach(o=>{const op=document.createElement('option');op.value=o;op.textContent=o;if((h.ls||'-')===o)op.selected=true;lsSel.appendChild(op)});
+      lsSel.addEventListener('change',()=>{h.ls=lsSel.value;draw()});
+      const mkSel=document.createElement('select');mkSel.style.cssText='font-size:10px;padding:1px;width:42px;flex-shrink:0';
+      ['none','o','s','^','d','*','x','+'].forEach(o=>{const op=document.createElement('option');op.value=o;op.textContent=o==='none'?'no mk':o;if((h.marker||'none')===o)op.selected=true;mkSel.appendChild(op)});
+      mkSel.addEventListener('change',()=>{h.marker=mkSel.value;draw()});
+      const lbInp=document.createElement('input');lbInp.type='text';lbInp.placeholder='label';lbInp.value=h.label||'';
+      lbInp.style.cssText='flex:1;padding:1px 3px;border:1px solid #ccc;border-radius:3px;font-size:10px';
+      lbInp.addEventListener('input',()=>{h.label=lbInp.value;draw()});
+      const del=document.createElement('button');del.textContent='✕';del.className='xbtn';del.onclick=()=>{cfg.legend.handles.splice(i,1);buildAxEd();draw()};
+      row.appendChild(ci);row.appendChild(lsSel);row.appendChild(mkSel);row.appendChild(lbInp);row.appendChild(del);
+      secL.appendChild(row);
+    });
+    const addH=document.createElement('button');addH.textContent='+ Add entry';addH.className='add-btn';addH.style.cssText+='border:1px solid #59a14f;color:#59a14f';
+    addH.onclick=()=>{cfg.legend.handles.push({color:'#4e79a7',ls:'-',marker:'none',label:''});buildAxEd();draw()};
+    secL.appendChild(addH);
+  }
+  ed.appendChild(secL);
+}
+
+// ── colormap ──
+function addStop(){cmapStops.push({color:'#ffffff'});renderStops();draw()}
+function renderStops(){
+  const c=g('cmap-stops');if(!c)return;c.innerHTML='';
+  cmapStops.forEach((s,i)=>{
+    const row=document.createElement('div');row.className='item-row';
+    const ci=document.createElement('input');ci.type='color';ci.value=s.color;ci.style.cssText='width:22px;height:18px;border:none;cursor:pointer';
+    ci.addEventListener('input',()=>{s.color=ci.value;renderCustomPrev();draw()});
+    const lb=document.createElement('span');lb.style.cssText='font-size:10px;color:#888;flex:1';lb.textContent=i===0?'min':i===cmapStops.length-1?'max':'stop '+i;
+    const del=document.createElement('button');del.textContent='✕';del.className='xbtn';
+    del.onclick=()=>{if(cmapStops.length>2){cmapStops.splice(i,1);renderStops();draw();}};
+    row.appendChild(ci);row.appendChild(lb);row.appendChild(del);c.appendChild(row);
+  });
+  renderCustomPrev();
+}
+function renderCustomPrev(){
+  const p=g('cmap-prev-cu');if(!p)return;
+  const stops=cmapStops.map((s,i)=>`${s.color} ${(i/(cmapStops.length-1)*100).toFixed(0)}%`).join(',');
+  p.style.background=`linear-gradient(to right,${stops})`;
+}
+function updateCmapPrev(){
+  const p=g('cmap-prev-bi');if(!p)return;
+  const name=g('cmap-name')?g('cmap-name').value:'viridis';
+  const rev=g('cmap-rev')&&g('cmap-rev').checked;
+  let cols=(CMAP_GRADS[name]||'#000,#fff').split(',');
+  if(rev) cols=[...cols].reverse();
+  p.style.background=`linear-gradient(to right,${cols.join(',')})`;
+}
+
+function getCmapCode(varname='cmap'){
+  const type=g('cmap-type')?g('cmap-type').value:'builtin';
+  if(type==='custom'){
+    const hex2rgb=h=>{const r=parseInt(h.slice(1,3),16)/255,gg=parseInt(h.slice(3,5),16)/255,b=parseInt(h.slice(5,7),16)/255;return `${r.toFixed(3)}, ${gg.toFixed(3)}, ${b.toFixed(3)}`};
+    const rows=cmapStops.map(s=>`  ${hex2rgb(s.color)}`).join(';\n');
+    return [`% custom colormap`,`${varname}_colors = [`,rows,`];`,`N = 256;`,`${varname} = interp1(linspace(0,1,size(${varname}_colors,1)), ${varname}_colors, linspace(0,1,N));`,`colormap(${varname});`].join('\n');
+  }
+  const name=g('cmap-name')?g('cmap-name').value:'viridis';
+  const rev=g('cmap-rev')&&g('cmap-rev').checked;
+  const s=g('cmap-s')?parseFloat(g('cmap-s').value):0;
+  const e=g('cmap-e')?parseFloat(g('cmap-e').value):1;
+  const lines=[];
+  if(name==='parula'||name==='viridis'||name==='plasma'||name==='inferno'||name==='magma'||name==='coolwarm'||name==='seismic'||name==='bwr'||name==='RdBu'){
+    lines.push(`% Note: ${name} may need the 'colormaps' package in Octave`);
+    lines.push(`% pkg install -forge colormaps  (run once)`);
+    lines.push(`% pkg load colormaps`);
+    lines.push(`colormap(${name}(256));`);
+  } else {
+    lines.push(`colormap(${name}(256));`);
+  }
+  if(s>0||e<1){
+    lines.push(`% Crop colormap`);
+    lines.push(`cm_full = colormap();`);
+    lines.push(`n_full = size(cm_full, 1);`);
+    lines.push(`cm_crop = cm_full(round(${s.toFixed(2)}*n_full+1):round(${e.toFixed(2)}*n_full), :);`);
+    lines.push(`colormap(cm_crop);`);
+  }
+  if(rev){
+    lines.push(`% Reverse colormap`);
+    lines.push(`cm = colormap(); colormap(flipud(cm));`);
+  }
+  return lines.join('\n');
+}
+
+// hex color to Octave [r g b]
+function hex2octave(hex){
+  const r=parseInt(hex.slice(1,3),16)/255;
+  const gg=parseInt(hex.slice(3,5),16)/255;
+  const b=parseInt(hex.slice(5,7),16)/255;
+  return `[${r.toFixed(3)} ${gg.toFixed(3)} ${b.toFixed(3)}]`;
+}
+
+// linestyle to Octave
+function ls2oct(ls){
+  if(ls==='-') return "'-'";
+  if(ls==='--') return "'--'";
+  if(ls==='-.') return "'-.'";
+  if(ls===':') return "':'";
+  return "'-'";
+}
+
+// ── draw canvas ──
+function draw(){
+  const nr=iv('nrows'),nc=iv('ncols');
+  const hs=fv('hspace'),ws=fv('wspace');
+  const hasCbar=g('cbar-on')&&g('cbar-on').checked;
+  const showLbl=g('show-lbl').checked;
+  const lblPos=g('lbl-pos').value;
+
+  if(hrArr.length!==nr) buildRatios('height-ratios',hrArr,'row',nr);
+  if(wrArr.length!==nc) buildRatios('width-ratios',wrArr,'col',nc);
+  buildAxSelect();
+  updateCmapPrev();
+  renderStops();
+
+  const hr=getRatios(hrArr),wr=getRatios(wrArr);
+  const cvs=g('canvas');
+  const W=cvs.offsetWidth||420,H=360;
+  cvs.width=W;cvs.height=H;
+  const ctx=cvs.getContext('2d');
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+
+  const iW=W-PAD.l-PAD.r,iH=H-PAD.t-PAD.b;
+  const tHr=hr.reduce((a,b)=>a+b,0),tWr=wr.reduce((a,b)=>a+b,0);
+  const hGap=nr>1?hs*(iH/(nr+(nr-1)*hs)):0;
+  const wGap=nc>1?ws*(iW/(nc+(nc-1)*ws)):0;
+  const cH=hr.map(r=>r/tHr*(iH-(nr-1)*hGap));
+  const cW=wr.map(r=>r/tWr*(iW-(nc-1)*wGap));
+
+  let yOff=PAD.t,idx=0;
+  for(let r=0;r<nr;r++){
+    let xOff=PAD.l;
+    for(let c=0;c<nc;c++){
+      const cw=cW[c],ch=cH[r];
+      const cfg=axCfg[key(r,c)]||{};
+      const col=COLORS[idx%COLORS.length];
+      ctx.fillStyle=col+'22';ctx.strokeStyle=col;ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.roundRect(xOff,yOff,cw,ch,3);ctx.fill();ctx.stroke();
+
+      if(showLbl){
+        const lbl=getLabel(idx);
+        ctx.fillStyle='#333';ctx.font='bold 9px system-ui';
+        if(lblPos==='tl'){ctx.textAlign='left';ctx.fillText(lbl,xOff+4,yOff+11);}
+        else if(lblPos==='tr'){ctx.textAlign='right';ctx.fillText(lbl,xOff+cw-4,yOff+11);}
+        else{ctx.textAlign='left';ctx.fillText(lbl,xOff,yOff-3);}
+      }
+
+      ctx.fillStyle='#555';ctx.font='10px system-ui';ctx.textAlign='center';
+      ctx.fillText(`ax${r*nc+c+1}`,xOff+cw/2,yOff+ch/2+4);
+
+      if(cfg.xlabel){ctx.fillStyle='#333';ctx.font='7px system-ui';ctx.textAlign='center';ctx.fillText(cfg.xlabel,xOff+cw/2,yOff+ch-3);}
+      if(cfg.ylabel){ctx.save();ctx.translate(xOff+9,yOff+ch/2);ctx.rotate(-Math.PI/2);ctx.fillStyle='#333';ctx.font='7px system-ui';ctx.textAlign='center';ctx.fillText(cfg.ylabel,0,0);ctx.restore();}
+      if(cfg.xlim||cfg.ylim){ctx.fillStyle='#59a14f';ctx.font='6px system-ui';ctx.textAlign='left';ctx.fillText((cfg.xlim?'x:['+cfg.xlim+'] ':'')+(cfg.ylim?'y:['+cfg.ylim+']':''),xOff+3,yOff+22);}
+      if(cfg.texts&&cfg.texts.length>0){ctx.fillStyle='#d9531e';ctx.font='7px system-ui';ctx.textAlign='left';ctx.fillText('T×'+cfg.texts.length,xOff+3,yOff+ch-10);}
+      if(cfg.arrows&&cfg.arrows.length>0){ctx.fillStyle='#e15759';ctx.font='7px system-ui';ctx.textAlign='left';ctx.fillText('→×'+cfg.arrows.length,xOff+3+(cfg.texts&&cfg.texts.length>0?20:0),yOff+ch-10);}
+      if(cfg.legend&&cfg.legend.show){ctx.fillStyle='#59a14f';ctx.font='7px system-ui';ctx.textAlign='right';ctx.fillText('L',xOff+cw-3,yOff+ch-3);}
+
+      xOff+=cw+wGap;idx++;
+    }
+    yOff+=cH[r]+hGap;
+  }
+  generateCode(nr,nc,hr,wr,hs,ws,hasCbar,showLbl,lblPos);
+}
+
+function generateCode(nr,nc,hr,wr,hs,ws,hasCbar,showLbl,lblPos){
+  const fw=fv('fig-w'),fa=fv('fig-asp');
+  const fs=iv('rc-fs'),ls=iv('rc-ls'),ts=iv('rc-ts'),lgs=iv('rc-lgs');
+  const lw=fv('rc-lw'),alw=fv('rc-alw'),dpi=iv('rc-dpi');
+  const fmt=g('out-fmt').value,fname=g('out-name').value||'figure';
+  const lines=[];
+
+  lines.push(`% ── Octave figure layout ──`);
+  lines.push(`% Generated by Octave Layout Designer`);
+  lines.push(`close all; clear;`);
+  lines.push(``);
+  lines.push(`% ── figure size ──`);
+  lines.push(`fig_w_cm = ${fw};`);
+  lines.push(`fig_h_cm = fig_w_cm * ${fa.toFixed(2)};`);
+  lines.push(`fig_w_in = fig_w_cm / 2.54;`);
+  lines.push(`fig_h_in = fig_h_cm / 2.54;`);
+  lines.push(``);
+  lines.push(`hf = figure('Units', 'inches', 'Position', [1 1 fig_w_in fig_h_in]);`);
+  lines.push(`set(hf, 'PaperUnits', 'inches', 'PaperSize', [fig_w_in fig_h_in], ...`);
+  lines.push(`        'PaperPosition', [0 0 fig_w_in fig_h_in]);`);
+  lines.push(``);
+
+  // compute subplot positions manually (Octave subtightplot or manual)
+  lines.push(`% ── subplot layout ──`);
+  lines.push(`% Using manual position calculation (like subplot with custom spacing)`);
+  lines.push(`nr = ${nr}; nc = ${nc};`);
+  lines.push(`hs = ${hs.toFixed(3)};  % height spacing (fraction)`);
+  lines.push(`ws = ${ws.toFixed(3)};  % width spacing (fraction)`);
+  lines.push(`lm = 0.08; rm = 0.02; bm = 0.08; tm = 0.04;  % margins (adjust as needed)`);
+  lines.push(``);
+
+  // height ratios
+  const hrStr=hr.map(v=>v.toFixed(2)).join(', ');
+  const wrStr=wr.map(v=>v.toFixed(2)).join(', ');
+  lines.push(`hr = [${hrStr}];  % height ratios`);
+  lines.push(`wr = [${wrStr}];  % width ratios`);
+  lines.push(`hr = hr / sum(hr);`);
+  lines.push(`wr = wr / sum(wr);`);
+  lines.push(``);
+  lines.push(`plot_h = (1 - tm - bm - (nr-1)*hs) * hr;`);
+  lines.push(`plot_w = (1 - lm - rm - (nc-1)*ws) * wr;`);
+  lines.push(``);
+  lines.push(`% Compute bottom positions (row 0 = top)`);
+  lines.push(`bot = zeros(1, nr);`);
+  lines.push(`bot(nr) = bm;`);
+  lines.push(`for i = nr-1:-1:1`);
+  lines.push(`  bot(i) = bot(i+1) + plot_h(i+1) + hs;`);
+  lines.push(`end`);
+  lines.push(`% Compute left positions`);
+  lines.push(`lft = zeros(1, nc);`);
+  lines.push(`lft(1) = lm;`);
+  lines.push(`for j = 2:nc`);
+  lines.push(`  lft(j) = lft(j-1) + plot_w(j-1) + ws;`);
+  lines.push(`end`);
+  lines.push(``);
+
+  // create axes
+  lines.push(`% ── create axes ──`);
+  let idx=0;
+  for(let r=0;r<nr;r++) for(let c=0;c<nc;c++){
+    const axn=`ax${idx+1}`;
+    lines.push(`${axn} = axes('Position', [lft(${c+1}) bot(${r+1}) plot_w(${c+1}) plot_h(${r+1})]);`);
+    idx++;
+  }
+  lines.push(``);
+
+  // set font defaults
+  lines.push(`% ── font defaults ──`);
+  lines.push(`set(0, 'DefaultAxesFontSize', ${ts});`);
+  lines.push(`set(0, 'DefaultTextFontSize', ${fs});`);
+  lines.push(`set(0, 'DefaultAxesLineWidth', ${alw});`);
+  lines.push(`set(0, 'DefaultLineLineWidth', ${lw});`);
+  lines.push(``);
+
+  // configure each axis
+  lines.push(`% ── configure axes ──`);
+  idx=0;
+  for(let r=0;r<nr;r++) for(let c=0;c<nc;c++){
+    const cfg=axCfg[key(r,c)]||{};
+    const axn=`ax${idx+1}`;
+    lines.push(`axes(${axn});`);
+    lines.push(`hold on;`);
+    if(cfg.xlabel) lines.push(`xlabel('${cfg.xlabel}', 'FontSize', ${ls});`);
+    if(cfg.ylabel) lines.push(`ylabel('${cfg.ylabel}', 'FontSize', ${ls});`);
+    if(cfg.xlim){const p=cfg.xlim.split(',');if(p.length===2)lines.push(`xlim([${p[0].trim()} ${p[1].trim()}]);`);}
+    if(cfg.ylim){const p=cfg.ylim.split(',');if(p.length===2)lines.push(`ylim([${p[0].trim()} ${p[1].trim()}]);`);}
+    if(cfg.xticks==='none') lines.push(`set(${axn}, 'XTick', []);`);
+    else if(cfg.xticks==='custom'&&cfg.xticksVal) lines.push(`set(${axn}, 'XTick', [${cfg.xticksVal}]);`);
+    if(cfg.yticks==='none') lines.push(`set(${axn}, 'YTick', []);`);
+    else if(cfg.yticks==='custom'&&cfg.yticksVal) lines.push(`set(${axn}, 'YTick', [${cfg.yticksVal}]);`);
+    lines.push(`set(${axn}, 'Box', 'on', 'TickDir', 'in');`);
+
+    // panel label
+    if(showLbl){
+      const lbl=getLabel(idx);
+      if(lblPos==='tl'){
+        lines.push(`text(0.05, 0.95, '${lbl}', 'Units', 'normalized', 'FontSize', ${ls}, 'FontWeight', 'bold', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left');`);
+      } else if(lblPos==='tr'){
+        lines.push(`text(0.95, 0.95, '${lbl}', 'Units', 'normalized', 'FontSize', ${ls}, 'FontWeight', 'bold', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'right');`);
+      } else {
+        lines.push(`title('${lbl}', 'FontSize', ${ls}, 'HorizontalAlignment', 'left');`);
+      }
+    }
+
+    // text annotations
+    if(cfg.texts&&cfg.texts.length>0) cfg.texts.forEach(t=>{
+      if(!t.text) return;
+      const fw2=t.bold?"'bold'":"'normal'";
+      const col=hex2octave(t.color||'#000000');
+      lines.push(`text(${t.x||0.05}, ${t.y||0.95}, '${t.text}', 'Units', 'normalized', 'FontSize', ${t.fs||10}, 'FontWeight', ${fw2}, 'Color', ${col}, 'VerticalAlignment', 'top');`);
+    });
+
+    // arrow annotations (Octave uses annotation or quiver)
+    if(cfg.arrows&&cfg.arrows.length>0) cfg.arrows.forEach(ar=>{
+      const col=hex2octave(ar.color||'#000000');
+      lines.push(`% Arrow annotation (in normalized figure coords)`);
+      lines.push(`annotation('arrow', [${ar.x1||0.1} ${ar.x2||0.4}], [${ar.y1||0.5} ${ar.y2||0.8}], 'Color', ${col}, 'LineWidth', 1.2);`);
+      if(ar.label) lines.push(`text(${ar.x2||0.4}, ${ar.y2||0.8}, '${ar.label}', 'Units', 'normalized', 'FontSize', ${fs});`);
+    });
+
+    // legend
+    if(cfg.legend&&cfg.legend.show&&cfg.legend.handles&&cfg.legend.handles.length>0){
+      const entries=cfg.legend.handles.map((h,hi)=>{
+        const col=hex2octave(h.color||'#4e79a7');
+        const mk=h.marker&&h.marker!=='none'?`, 'Marker', '${h.marker}'`:'';
+        const ls2=h.ls||'-';
+        return `  plot(NaN, NaN, 'LineStyle', ${ls2oct(ls2)}, 'Color', ${col}${mk}, 'LineWidth', ${lw}, 'DisplayName', '${h.label||''}');`;
+      });
+      lines.push(`% Legend`);
+      lines.push(`hold on;`);
+      entries.forEach(e=>lines.push(e));
+      lines.push(`legend('Location', '${cfg.legend.loc||'northeast'}', 'FontSize', ${cfg.legend.fontsize||8});`);
+    }
+
+    lines.push(``);
+    idx++;
+  }
+
+  // colormap & colorbar
+  if(hasCbar){
+    lines.push(`% ── colormap & colorbar ──`);
+    lines.push(getCmapCode());
+    lines.push(``);
+    const loc=g('cbar-loc').value;
+    lines.push(`cb = colorbar('Location', '${loc}');`);
+    lines.push(`set(cb, 'FontSize', ${ts});`);
+    lines.push(`ylabel(cb, 'Label', 'FontSize', ${ls});`);
+    lines.push(``);
+  }
+
+  // save
+  lines.push(`% ── save ──`);
+  lines.push(`print(hf, '${fname}', '-d${fmt}', '-r${dpi}');`);
+  lines.push(`% Or use: saveas(hf, '${fname}.${fmt}');`);
+
+  g('code-out').textContent=lines.join('\n');
+}
+
+function copyCode(){
+  navigator.clipboard.writeText(g('code-out').textContent)
+    .then(()=>{const b=document.querySelector('.btn-oct');b.textContent='Copied!';setTimeout(()=>b.textContent='Copy code',1500)});
+}
+
+function resetAll(){
+  axCfg={};cmapStops=[{color:'#000080'},{color:'#ff0000'},{color:'#ffff00'}];
+  hrArr=[];wrArr=[];
+  g('nrows').value=2;g('ncols').value=2;
+  g('hspace').value=0.12;g('wspace').value=0.10;
+  g('cbar-on').checked=false;g('cbar-opts').style.display='none';
+  n('nrows-v',2,0);n('ncols-v',2,0);n('hspace-v',0.12,2);n('wspace-v',0.10,2);
+  draw();
+}
+
+draw();
+</script>
+</body>
+</html>

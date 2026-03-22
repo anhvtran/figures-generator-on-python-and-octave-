@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Matplotlib Layout Designer v3</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;font-size:13px;color:#222;background:#f0f2f5;padding:1rem}
+.wrap{display:flex;gap:1rem;flex-wrap:wrap;max-width:1300px;margin:0 auto}
+.panel{flex:1;min-width:270px;max-width:310px;background:#fff;border:1px solid #ddd;border-radius:8px;padding:0.8rem;overflow-y:auto;max-height:92vh}
+.preview{flex:2;min-width:360px;background:#fff;border:1px solid #ddd;border-radius:8px;padding:0.8rem}
+h1{font-size:15px;font-weight:700;margin-bottom:0.8rem;color:#111;text-align:center}
+h3{font-size:12px;font-weight:600;margin-bottom:5px;color:#333;margin-top:2px}
+.row{display:flex;align-items:center;gap:5px;margin-bottom:5px}
+label{font-size:11px;color:#555;min-width:100px;flex-shrink:0}
+input[type=range]{flex:1;min-width:50px;accent-color:#4e79a7}
+.val{font-size:11px;font-weight:600;min-width:32px;text-align:right;color:#111}
+input[type=number]{width:56px;padding:2px 4px;border:1px solid #ccc;border-radius:4px;font-size:11px}
+input[type=text]{flex:1;padding:2px 4px;border:1px solid #ccc;border-radius:4px;font-size:11px}
+input[type=checkbox]{width:13px;height:13px;accent-color:#4e79a7}
+input[type=color]{width:28px;height:22px;border:none;cursor:pointer;border-radius:3px}
+.sep{height:1px;background:#eee;margin:6px 0}
+canvas{width:100%;border:1px solid #ddd;border-radius:6px;display:block}
+.code-box{margin-top:8px;background:#f8f8f8;border:1px solid #ddd;border-radius:6px;padding:8px;font-family:monospace;font-size:10.5px;white-space:pre-wrap;word-break:break-all;max-height:280px;overflow-y:auto}
+.btn{padding:4px 11px;border:1px solid #ccc;border-radius:4px;background:#fff;cursor:pointer;font-size:11px}
+.btn:hover{background:#f0f0f0}
+.btn-blue{background:#4e79a7;color:#fff;border-color:#4e79a7}
+.btn-blue:hover{background:#3a5f8a}
+.sub{font-size:10px;color:#888}
+.ax-sec{background:#f8f8f8;border:1px solid #e0e0e0;border-radius:5px;padding:7px;margin-bottom:5px}
+.ax-title{font-size:11px;font-weight:600;margin-bottom:5px;color:#333}
+select{padding:2px 4px;border:1px solid #ccc;border-radius:4px;font-size:11px;background:#fff}
+.toolbar{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center}
+.badge{font-size:10px;padding:2px 7px;border-radius:10px;background:#e8f0fb;color:#4e79a7;font-weight:600}
+.tabs{display:flex;gap:3px;margin-bottom:8px}
+.tab{padding:3px 10px;border:1px solid #ccc;border-radius:4px;cursor:pointer;font-size:11px;background:#f5f5f5}
+.tab.active{background:#4e79a7;color:#fff;border-color:#4e79a7}
+.tc{display:none}.tc.active{display:block}
+.item-box{border:1px solid #e0e0e0;border-radius:4px;padding:5px;margin-bottom:4px;background:#fff}
+.add-btn{font-size:10px;padding:2px 8px;border-radius:3px;background:#fff;cursor:pointer;width:100%;margin-top:3px}
+.cprev{height:14px;border-radius:4px;margin:4px 0;border:0.5px solid #ccc}
+</style>
+</head>
+<body>
+<h1>Matplotlib Layout Designer v3</h1>
+<div class="wrap">
+<div class="panel">
+  <div class="tabs">
+    <div class="tab active" onclick="sw('layout')">Layout</div>
+    <div class="tab" onclick="sw('axes')">Axes</div>
+    <div class="tab" onclick="sw('style')">Style</div>
+  </div>
+
+  <div class="tc active" id="tab-layout">
+    <h3>Figure size</h3>
+    <div class="row"><label>Preset</label>
+      <select id="fig-preset" onchange="applyPreset()">
+        <option value="custom">Custom</option>
+        <option value="si">IOP single (8.5cm)</option>
+        <option value="di" selected>IOP double (15cm)</option>
+        <option value="sn">Nature single (89mm)</option>
+        <option value="dn">Nature double (183mm)</option>
+      </select>
+    </div>
+    <div class="row"><label>Width (cm)</label><input type="number" id="fig-w" value="15" step="0.5" min="4" max="30" oninput="draw()"></div>
+    <div class="row"><label>Aspect (h/w)</label><input type="range" id="fig-asp" min="0.3" max="2.0" value="0.75" step="0.05" oninput="u('fig-asp');draw()"><span class="val" id="fig-asp-v">0.75</span></div>
+    <div class="sep"></div>
+    <h3>Grid</h3>
+    <div class="row"><label>Rows</label><input type="range" id="nrows" min="1" max="5" value="2" step="1" oninput="ui('nrows');draw()"><span class="val" id="nrows-v">2</span></div>
+    <div class="row"><label>Cols</label><input type="range" id="ncols" min="1" max="5" value="2" step="1" oninput="ui('ncols');draw()"><span class="val" id="ncols-v">2</span></div>
+    <div class="row"><label>hspace</label><input type="range" id="hspace" min="0" max="1" value="0.35" step="0.01" oninput="u('hspace');draw()"><span class="val" id="hspace-v">0.35</span></div>
+    <div class="row"><label>wspace</label><input type="range" id="wspace" min="0" max="1" value="0.20" step="0.01" oninput="u('wspace');draw()"><span class="val" id="wspace-v">0.20</span></div>
+    <div class="sep"></div>
+    <h3>Height ratios</h3><div id="height-ratios"></div>
+    <h3>Width ratios</h3><div id="width-ratios"></div>
+    <div class="sep"></div>
+    <h3>Colorbar</h3>
+    <div class="row"><label>Add colorbar</label><input type="checkbox" id="cbar-on" onchange="tog('cbar-body');draw()"></div>
+    <div id="cbar-body" style="display:none">
+      <div class="row"><label>Mode</label>
+        <select id="cbar-mode" onchange="v('cbar-m').style.display=this.value==='manual'?'block':'none';v('cbar-b').style.display=this.value==='builtin'?'block':'none';draw()">
+          <option value="manual">Manual (add_axes)</option>
+          <option value="builtin">Built-in (plt.colorbar)</option>
+        </select>
+      </div>
+      <div id="cbar-m">
+        <div class="row"><label>Attach row</label><input type="number" id="cbar-row" value="0" step="1" min="0" max="4" oninput="draw()"></div>
+        <div class="row"><label>Gap</label><input type="number" id="cbar-gap" value="0.010" step="0.005" min="0" max="0.1" oninput="draw()"></div>
+        <div class="row"><label>Thickness</label><input type="number" id="cbar-thick" value="0.015" step="0.005" min="0.005" max="0.05" oninput="draw()"></div>
+        <div class="row"><label>Width ratio</label><input type="number" id="cbar-width" value="0.05" step="0.01" min="0.01" max="0.3" oninput="draw()"></div>
+      </div>
+      <div id="cbar-b" style="display:none">
+        <div class="row"><label>Orientation</label>
+          <select id="cbar-orient" onchange="draw()">
+            <option value="vertical">Vertical</option>
+            <option value="horizontal">Horizontal</option>
+          </select>
+        </div>
+        <div class="row"><label>Location</label>
+          <select id="cbar-loc" onchange="draw()">
+            <option value="right">Right</option><option value="left">Left</option>
+            <option value="top">Top</option><option value="bottom">Bottom</option>
+          </select>
+        </div>
+        <div class="row"><label>pad</label><input type="number" id="cbar-pad" value="0.02" step="0.01" min="0" max="0.2" oninput="draw()"></div>
+        <div class="row"><label>aspect</label><input type="number" id="cbar-aspect" value="25" step="1" min="5" max="60" oninput="draw()"></div>
+        <div class="row"><label>Attach to ax</label><input type="text" id="cbar-ax" placeholder="ax_00" oninput="draw()"></div>
+      </div>
+      <div class="sep"></div>
+      <h3>Colormap</h3>
+      <div class="row"><label>Type</label>
+        <select id="cmap-type" onchange="v('cmap-bi').style.display=this.value==='builtin'?'block':'none';v('cmap-cu').style.display=this.value==='custom'?'block':'none';draw()">
+          <option value="builtin">Built-in</option>
+          <option value="custom">Custom stops</option>
+        </select>
+      </div>
+      <div id="cmap-bi">
+        <div class="row"><label>Name</label>
+          <select id="cmap-name" onchange="updateCP();draw()">
+            <optgroup label="Sequential">
+              <option value="viridis" selected>viridis</option><option value="plasma">plasma</option>
+              <option value="inferno">inferno</option><option value="magma">magma</option>
+              <option value="hot">hot</option><option value="copper">copper</option>
+              <option value="Blues">Blues</option><option value="Reds">Reds</option>
+              <option value="Greens">Greens</option><option value="YlOrRd">YlOrRd</option>
+            </optgroup>
+            <optgroup label="Diverging">
+              <option value="coolwarm">coolwarm</option><option value="RdBu">RdBu</option>
+              <option value="seismic">seismic</option><option value="bwr">bwr</option>
+              <option value="PiYG">PiYG</option><option value="RdYlBu">RdYlBu</option>
+            </optgroup>
+            <optgroup label="Cyclic">
+              <option value="hsv">hsv</option><option value="twilight">twilight</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="row"><label>Reverse (_r)</label><input type="checkbox" id="cmap-rev" onchange="updateCP();draw()"></div>
+        <div class="row"><label>Crop start</label><input type="range" id="cmap-s" min="0" max="0.49" value="0" step="0.01" oninput="u('cmap-s');updateCP();draw()"><span class="val" id="cmap-s-v">0.00</span></div>
+        <div class="row"><label>Crop end</label><input type="range" id="cmap-e" min="0.51" max="1" value="1" step="0.01" oninput="u('cmap-e');updateCP();draw()"><span class="val" id="cmap-e-v">1.00</span></div>
+        <div class="cprev" id="cprev-bi"></div>
+      </div>
+      <div id="cmap-cu" style="display:none">
+        <div class="sub" style="margin-bottom:4px">Color stops (min → max)</div>
+        <div id="cmap-stops"></div>
+        <button class="add-btn" style="border:1px solid #59a14f;color:#59a14f" onclick="addStop()">+ Add stop</button>
+        <div class="cprev" id="cprev-cu"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tc" id="tab-axes">
+    <div class="row"><label>Panel</label><select id="ax-sel" onchange="buildAxEd()"></select></div>
+    <div id="ax-ed"></div>
+  </div>
+
+  <div class="tc" id="tab-style">
+    <h3>Panel labels</h3>
+    <div class="row"><label>Show</label><input type="checkbox" id="show-lbl" checked onchange="draw()"></div>
+    <div class="row"><label>Style</label>
+      <select id="lbl-style" onchange="draw()">
+        <option value="a)">a) b) c)...</option><option value="(a)">(a) (b)...</option>
+        <option value="A)">A) B) C)...</option><option value="1)">1) 2) 3)...</option>
+      </select>
+    </div>
+    <div class="row"><label>Position</label>
+      <select id="lbl-pos" onchange="draw()">
+        <option value="tl">Top-left inside</option>
+        <option value="tr">Top-right inside</option>
+        <option value="title">Title outside</option>
+      </select>
+    </div>
+    <div class="sep"></div>
+    <h3>rcParams</h3>
+    <div class="row"><label>font.size</label><input type="number" id="rc-fs" value="10" step="1" min="6" max="20" oninput="draw()"></div>
+    <div class="row"><label>axes.labelsize</label><input type="number" id="rc-ls" value="10" step="1" min="6" max="20" oninput="draw()"></div>
+    <div class="row"><label>xtick.labelsize</label><input type="number" id="rc-ts" value="9" step="1" min="6" max="20" oninput="draw()"></div>
+    <div class="row"><label>legend.fontsize</label><input type="number" id="rc-leg" value="8" step="1" min="6" max="20" oninput="draw()"></div>
+    <div class="row"><label>tick direction</label>
+      <select id="rc-td" onchange="draw()">
+        <option value="in">in</option><option value="out">out</option><option value="inout">inout</option>
+      </select>
+    </div>
+    <div class="row"><label>lines.linewidth</label><input type="number" id="rc-lw" value="1.2" step="0.1" min="0.3" max="4" oninput="draw()"></div>
+    <div class="row"><label>axes.linewidth</label><input type="number" id="rc-alw" value="0.8" step="0.1" min="0.3" max="3" oninput="draw()"></div>
+    <div class="row"><label>figure.dpi</label><input type="number" id="rc-dpi" value="300" step="100" min="72" max="600" oninput="draw()"></div>
+  </div>
+</div>
+
+<div class="preview">
+  <h3>Preview <span class="badge" id="panel-count">4 panels</span></h3>
+  <canvas id="canvas" height="360"></canvas>
+  <div class="toolbar">
+    <button class="btn btn-blue" onclick="copyCode()">Copy code</button>
+    <button class="btn" onclick="resetAll()">Reset</button>
+  </div>
+  <div class="code-box" id="code-out"></div>
+</div>
+</div>
+
+<script>
+const COLORS=['#4e79a7','#f28e2b','#e15759','#76b7b2','#59a14f','#edc948','#b07aa1','#ff9da7','#9c755f','#bab0ac'];
+const CG={viridis:'#440154,#31688e,#35b779,#fde725',plasma:'#0d0887,#7e03a8,#ed7953,#f0f921',
+  inferno:'#000004,#56106e,#f98e09,#fcffa4',magma:'#000004,#51127c,#fd9567,#fcfdbf',
+  hot:'#000000,#ff0000,#ffff00,#ffffff',copper:'#000000,#7f4f32,#ffa07a,#ffddaa',
+  Blues:'#f7fbff,#9ecae1,#2171b5,#08306b',Reds:'#fff5f0,#fc9272,#de2d26,#67000d',
+  Greens:'#f7fcf5,#74c476,#238b45,#00441b',YlOrRd:'#ffffcc,#feb24c,#f03b20,#800026',
+  coolwarm:'#3b4cc0,#dddddd,#b40426',RdBu:'#67001f,#f4a582,#f7f7f7,#92c5de,#053061',
+  seismic:'#00004d,#0000ff,#ffffff,#ff0000,#7f0000',bwr:'#0000ff,#ffffff,#ff0000',
+  PiYG:'#8e0152,#f7f7f7,#276419',RdYlBu:'#a50026,#ffffbf,#313695',
+  hsv:'#ff0000,#ffff00,#00ff00,#00ffff,#0000ff,#ff00ff,#ff0000',
+  twilight:'#e2d9e2,#5e4fa2,#1d7ab9,#5e4fa2,#e2d9e2'};
+const PAD={t:16,r:16,b:16,l:16};
+let hrI=[],wrI=[],axC={};
+let cstops=[{color:'#000080'},{color:'#ff0000'},{color:'#ffff00'}];
+
+const v=id=>document.getElementById(id);
+const fv=id=>parseFloat(v(id).value);
+const iv=id=>parseInt(v(id).value);
+const gk=(r,c)=>r+','+c;
+function u(id){const el=v(id);v(id+'-v').textContent=parseFloat(el.value).toFixed(2);}
+function ui(id){v(id+'-v').textContent=v(id).value;}
+function tog(id){const el=v(id);el.style.display=el.style.display==='none'?'block':'none';}
+
+function sw(n){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tc').forEach(t=>t.classList.remove('active'));
+  document.querySelector(`.tab[onclick="sw('${n}')"]`).classList.add('active');
+  v('tab-'+n).classList.add('active');
+}
+
+function applyPreset(){
+  const m={si:8.5,di:15,sn:8.9,dn:18.3};
+  const p=v('fig-preset').value;
+  if(m[p]) v('fig-w').value=m[p];
+  draw();
+}
+
+function ensC(r,c){
+  const k=gk(r,c);
+  if(!axC[k]) axC[k]={xlabel:'',ylabel:'',xlim:'',ylim:'',xticks:'auto',xticksVal:'',
+    yticks:'auto',yticksVal:'',shareX:'',shareY:'',texts:[],arrows:[],
+    legend:{show:false,loc:'upper right',ncol:'1',fontsize:'8',frameon:true,handles:[]}};
+  return axC[k];
+}
+
+function buildRatios(cid,arr,prefix,n){
+  const c=v(cid);c.innerHTML='';arr.length=0;
+  for(let i=0;i<n;i++){
+    const d=document.createElement('div');d.className='row';
+    const l=document.createElement('label');l.textContent=prefix+' '+i;
+    const inp=document.createElement('input');inp.type='number';inp.value=1;inp.step=0.1;inp.min=0.1;
+    inp.addEventListener('input',draw);arr.push(inp);
+    d.appendChild(l);d.appendChild(inp);c.appendChild(d);
+  }
+}
+const gR=arr=>arr.map(i=>parseFloat(i.value)||1);
+
+function getLabel(idx){
+  const s=v('lbl-style').value;
+  if(s==='a)') return String.fromCharCode(97+idx)+')';
+  if(s==='(a)') return '('+String.fromCharCode(97+idx)+')';
+  if(s==='A)') return String.fromCharCode(65+idx)+')';
+  return (idx+1)+')';
+}
+
+function updateCP(){
+  const p=v('cprev-bi');if(!p)return;
+  const name=v('cmap-name')?v('cmap-name').value:'viridis';
+  const rev=v('cmap-rev')&&v('cmap-rev').checked;
+  let cols=(CG[name]||'#000,#fff').split(',');
+  if(rev) cols=[...cols].reverse();
+  p.style.background=`linear-gradient(to right,${cols.join(',')})`;
+}
+
+function updateCPcustom(){
+  const p=v('cprev-cu');if(!p||cstops.length<2)return;
+  const s=cstops.map((c,i)=>`${c.color} ${(i/(cstops.length-1)*100).toFixed(0)}%`).join(',');
+  p.style.background=`linear-gradient(to right,${s})`;
+}
+
+function addStop(){cstops.push({color:'#ffffff'});renderStops();draw();}
+
+function renderStops(){
+  const cont=v('cmap-stops');if(!cont)return;
+  cont.innerHTML='';
+  cstops.forEach((s,i)=>{
+    const d=document.createElement('div');d.style.cssText='display:flex;gap:4px;align-items:center;margin-bottom:3px';
+    const ci=document.createElement('input');ci.type='color';ci.value=s.color;
+    ci.addEventListener('input',()=>{s.color=ci.value;updateCPcustom();draw()});
+    const lb=document.createElement('span');lb.style.cssText='font-size:10px;color:#888;flex:1';
+    lb.textContent=i===0?'min':i===cstops.length-1?'max':'stop '+i;
+    const del=document.createElement('button');del.textContent='✕';
+    del.style.cssText='font-size:9px;padding:1px 4px;border:1px solid #ccc;border-radius:3px;cursor:pointer';
+    del.onclick=()=>{if(cstops.length>2){cstops.splice(i,1);renderStops();draw();}};
+    d.appendChild(ci);d.appendChild(lb);d.appendChild(del);cont.appendChild(d);
+  });
+  updateCPcustom();
+}
+
+function getCmapCode(){
+  const type=v('cmap-type')?v('cmap-type').value:'builtin';
+  if(type==='custom'){
+    const cols=cstops.map(s=>`'${s.color}'`).join(', ');
+    return `import matplotlib.colors as mcolors\ncmap = mcolors.LinearSegmentedColormap.from_list('custom_cmap', [${cols}], N=256)`;
+  }
+  const name=v('cmap-name')?v('cmap-name').value:'viridis';
+  const rev=v('cmap-rev')&&v('cmap-rev').checked;
+  const s=v('cmap-s')?parseFloat(v('cmap-s').value):0;
+  const e=v('cmap-e')?parseFloat(v('cmap-e').value):1;
+  const nm=rev?name+'_r':name;
+  if(s>0.001||e<0.999){
+    return `import numpy as np\nimport matplotlib.colors as mcolors\ncmap = mcolors.LinearSegmentedColormap.from_list(\n    '${nm}_crop', plt.get_cmap('${nm}')(np.linspace(${s.toFixed(2)}, ${e.toFixed(2)}, 256)))`;
+  }
+  return `cmap = plt.get_cmap('${nm}')`;
+}
+
+function buildAxSel(){
+  const nr=iv('nrows'),nc=iv('ncols');
+  const sel=v('ax-sel'),prev=sel.value;sel.innerHTML='';
+  for(let r=0;r<nr;r++) for(let c=0;c<nc;c++){
+    const o=document.createElement('option');
+    o.value=gk(r,c);o.textContent='('+r+','+c+')';
+    if(o.value===prev)o.selected=true;
+    sel.appendChild(o);
+  }
+  v('panel-count').textContent=(nr*nc)+' panels';
+  buildAxEd();
+}
+
+function buildAxEd(){
+  const k=v('ax-sel').value||'0,0';
+  const pts=k.split(',');const r=parseInt(pts[0]),c=parseInt(pts[1]);
+  const cfg=ensC(r,c);
+  const ed=v('ax-ed');ed.innerHTML='';
+
+  function mr(lb,el){const d=document.createElement('div');d.className='row';const l=document.createElement('label');l.textContent=lb;l.style.minWidth='100px';d.appendChild(l);d.appendChild(el);return d;}
+  function ti(field,ph){const i=document.createElement('input');i.type='text';i.placeholder=ph;i.value=cfg[field]||'';i.addEventListener('input',()=>{cfg[field]=i.value;draw()});return i;}
+  function si(field,opts){const s=document.createElement('select');opts.forEach(o=>{const op=document.createElement('option');op.value=o;op.textContent=o;if((cfg[field]||opts[0])===o)op.selected=true;s.appendChild(op)});s.addEventListener('change',()=>{cfg[field]=s.value;buildAxEd();draw()});return s;}
+
+  const s0=document.createElement('div');s0.className='ax-sec';
+  s0.appendChild(Object.assign(document.createElement('div'),{className:'ax-title',textContent:'Panel ('+r+','+c+')'}));
+  s0.appendChild(mr('xlabel',ti('xlabel','Frequency (cm⁻¹)')));
+  s0.appendChild(mr('ylabel',ti('ylabel','Intensity')));
+  s0.appendChild(mr('xlim',ti('xlim','0, 1600')));
+  s0.appendChild(mr('ylim',ti('ylim','-1, 1800')));
+  s0.appendChild(mr('xticks',si('xticks',['auto','none','custom'])));
+  if(cfg.xticks==='custom')s0.appendChild(mr('xtick vals',ti('xticksVal','0, 0.5, 1')));
+  s0.appendChild(mr('yticks',si('yticks',['auto','none','custom'])));
+  if(cfg.yticks==='custom')s0.appendChild(mr('ytick vals',ti('yticksVal','0, 500, 1500')));
+  s0.appendChild(mr('sharey with',ti('shareY','ax_00')));
+  s0.appendChild(mr('sharex with',ti('shareX','ax_00')));
+  ed.appendChild(s0);
+
+  // texts
+  const sT=document.createElement('div');sT.className='ax-sec';
+  sT.appendChild(Object.assign(document.createElement('div'),{className:'ax-title',textContent:'Text annotations'}));
+  cfg.texts.forEach((t,i)=>{
+    const box=document.createElement('div');box.className='item-box';
+    function fi(f,ph,w){const inp=document.createElement('input');inp.type='text';inp.placeholder=ph;inp.value=t[f]||'';
+      inp.style.cssText=`width:${w||'100%'};padding:2px 3px;border:1px solid #ccc;border-radius:3px;font-size:10px`;
+      inp.addEventListener('input',()=>{t[f]=inp.value;draw()});return inp;}
+    const r1=document.createElement('div');r1.style.cssText='display:flex;gap:3px;margin-bottom:2px';
+    const lb1=document.createElement('span');lb1.textContent='text:';lb1.style.cssText='font-size:10px;color:#555;min-width:28px;line-height:20px';
+    r1.appendChild(lb1);r1.appendChild(fi('text','e.g. SP'));box.appendChild(r1);
+    const r2=document.createElement('div');r2.style.cssText='display:flex;gap:3px;margin-bottom:2px;flex-wrap:wrap';
+    [['x','0.05','44px'],['y','0.95','44px'],['fs','10','44px']].forEach(([f,ph,w])=>{
+      const lb2=document.createElement('span');lb2.textContent=f+':';lb2.style.cssText='font-size:10px;color:#555;line-height:20px';
+      r2.appendChild(lb2);r2.appendChild(fi(f,ph,w));
+    });
+    const bc=document.createElement('input');bc.type='checkbox';bc.checked=t.bold||false;
+    bc.addEventListener('change',()=>{t.bold=bc.checked;draw()});
+    const bl=document.createElement('span');bl.textContent='bold';bl.style.cssText='font-size:10px;color:#555';
+    r2.appendChild(bc);r2.appendChild(bl);box.appendChild(r2);
+    const r3=document.createElement('div');r3.style.cssText='display:flex;gap:3px;align-items:center';
+    const ci=document.createElement('input');ci.type='color';ci.value=t.color||'#000000';
+    ci.addEventListener('input',()=>{t.color=ci.value;draw()});
+    const va=document.createElement('select');va.style.cssText='font-size:10px;padding:1px';
+    ['top','center','bottom'].forEach(o=>{const op=document.createElement('option');op.value=o;op.textContent='va:'+o;if((t.va||'top')===o)op.selected=true;va.appendChild(op)});
+    va.addEventListener('change',()=>{t.va=va.value;draw()});
+    const del=document.createElement('button');del.textContent='✕';del.style.cssText='font-size:9px;padding:1px 4px;border:1px solid #ccc;border-radius:3px;cursor:pointer;margin-left:auto';
+    del.onclick=()=>{cfg.texts.splice(i,1);buildAxEd();draw()};
+    r3.appendChild(ci);r3.appendChild(va);r3.appendChild(del);box.appendChild(r3);
+    sT.appendChild(box);
+  });
+  const addT=document.createElement('button');addT.textContent='+ Add text';addT.className='add-btn';addT.style.cssText='border:1px solid #4e79a7;color:#4e79a7';
+  addT.onclick=()=>{cfg.texts.push({text:'',x:'0.05',y:'0.95',fs:'10',bold:false,color:'#000000',va:'top'});buildAxEd();draw()};
+  sT.appendChild(addT);ed.appendChild(sT);
+
+  // arrows
+  const sA=document.createElement('div');sA.className='ax-sec';
+  sA.appendChild(Object.assign(document.createElement('div'),{className:'ax-title',textContent:'Arrows'}));
+  cfg.arrows.forEach((ar,i)=>{
+    const box=document.createElement('div');box.className='item-box';
+    function ai(f,ph){const inp=document.createElement('input');inp.type='text';inp.placeholder=ph;inp.value=ar[f]||'';
+      inp.style.cssText='width:50px;padding:2px 3px;border:1px solid #ccc;border-radius:3px;font-size:10px;margin:1px';
+      inp.addEventListener('input',()=>{ar[f]=inp.value;draw()});return inp;}
+    const r1=document.createElement('div');r1.style.cssText='display:flex;gap:2px;flex-wrap:wrap;margin-bottom:2px';
+    [['xy_x','xy x'],['xy_y','xy y'],['txt_x','txt x'],['txt_y','txt y']].forEach(([f,ph])=>{
+      const lb=document.createElement('span');lb.textContent=ph+':';lb.style.cssText='font-size:10px;color:#555;line-height:20px';
+      r1.appendChild(lb);r1.appendChild(ai(f,ph));
+    });
+    box.appendChild(r1);
+    const r2=document.createElement('div');r2.style.cssText='display:flex;gap:3px;align-items:center';
+    const lb=document.createElement('span');lb.textContent='label:';lb.style.cssText='font-size:10px;color:#555';
+    const li=document.createElement('input');li.type='text';li.placeholder='optional';li.value=ar.label||'';li.style.cssText='flex:1;padding:2px 3px;border:1px solid #ccc;border-radius:3px;font-size:10px';
+    li.addEventListener('input',()=>{ar.label=li.value;draw()});
+    const ci=document.createElement('input');ci.type='color';ci.value=ar.color||'#000000';
+    ci.addEventListener('input',()=>{ar.color=ci.value;draw()});
+    const del=document.createElement('button');del.textContent='✕';del.style.cssText='font-size:9px;padding:1px 4px;border:1px solid #ccc;border-radius:3px;cursor:pointer';
+    del.onclick=()=>{cfg.arrows.splice(i,1);buildAxEd();draw()};
+    r2.appendChild(lb);r2.appendChild(li);r2.appendChild(ci);r2.appendChild(del);box.appendChild(r2);
+    sA.appendChild(box);
+  });
+  const addA=document.createElement('button');addA.textContent='+ Add arrow';addA.className='add-btn';addA.style.cssText='border:1px solid #e15759;color:#e15759';
+  addA.onclick=()=>{cfg.arrows.push({xy_x:'0.5',xy_y:'0.8',txt_x:'0.5',txt_y:'0.5',label:'',color:'#000000'});buildAxEd();draw()};
+  sA.appendChild(addA);ed.appendChild(sA);
+
+  // legend
+  const lg=cfg.legend;
+  const sL=document.createElement('div');sL.className='ax-sec';
+  sL.appendChild(Object.assign(document.createElement('div'),{className:'ax-title',textContent:'Legend (custom handles)'}));
+  const sr=document.createElement('div');sr.className='row';
+  const sl=document.createElement('label');sl.textContent='Add legend';sl.style.minWidth='100px';
+  const sc=document.createElement('input');sc.type='checkbox';sc.checked=lg.show||false;
+  sc.addEventListener('change',()=>{lg.show=sc.checked;buildAxEd();draw()});
+  sr.appendChild(sl);sr.appendChild(sc);sL.appendChild(sr);
+  if(lg.show){
+    function lrow(lb,el){const d=document.createElement('div');d.className='row';const l=document.createElement('label');l.textContent=lb;l.style.minWidth='100px';d.appendChild(l);d.appendChild(el);return d;}
+    function lsel(field,opts){const s=document.createElement('select');s.style.cssText='font-size:10px;padding:2px';opts.forEach(o=>{const op=document.createElement('option');op.value=o;op.textContent=o;if((lg[field]||opts[0])===o)op.selected=true;s.appendChild(op)});s.addEventListener('change',()=>{lg[field]=s.value;draw()});return s;}
+    function lnum(field,def){const i=document.createElement('input');i.type='number';i.value=lg[field]||def;i.style.width='56px';i.addEventListener('input',()=>{lg[field]=i.value;draw()});return i;}
+    sL.appendChild(lrow('loc',lsel('loc',['upper right','upper left','lower right','lower left','upper center','lower center','best'])));
+    sL.appendChild(lrow('ncol',lnum('ncol','1')));
+    sL.appendChild(lrow('fontsize',lnum('fontsize','8')));
+    const fr=document.createElement('div');fr.className='row';
+    const frl=document.createElement('label');frl.textContent='frameon';frl.style.minWidth='100px';
+    const frc=document.createElement('input');frc.type='checkbox';frc.checked=lg.frameon!==false;
+    frc.addEventListener('change',()=>{lg.frameon=frc.checked;draw()});
+    fr.appendChild(frl);fr.appendChild(frc);sL.appendChild(fr);
+    if(!lg.handles)lg.handles=[];
+    lg.handles.forEach((h,i)=>{
+      const hb=document.createElement('div');hb.className='item-box';hb.style.cssText='display:flex;gap:3px;align-items:center;padding:4px';
+      const ci=document.createElement('input');ci.type='color';ci.value=h.color||'#4e79a7';ci.addEventListener('input',()=>{h.color=ci.value;draw()});
+      const ls=document.createElement('select');ls.style.cssText='font-size:10px;padding:1px;width:42px';
+      ['-','--','-.',':','none'].forEach(o=>{const op=document.createElement('option');op.value=o;op.textContent=o;if((h.ls||'-')===o)op.selected=true;ls.appendChild(op)});
+      ls.addEventListener('change',()=>{h.ls=ls.value;draw()});
+      const mk=document.createElement('select');mk.style.cssText='font-size:10px;padding:1px;width:42px';
+      ['none','o','s','^','D','*'].forEach(o=>{const op=document.createElement('option');op.value=o;op.textContent=o==='none'?'·':o;if((h.marker||'none')===o)op.selected=true;mk.appendChild(op)});
+      mk.addEventListener('change',()=>{h.marker=mk.value;draw()});
+      const li=document.createElement('input');li.type='text';li.placeholder='label';li.value=h.label||'';li.style.cssText='flex:1;padding:2px 3px;border:1px solid #ccc;border-radius:3px;font-size:10px';
+      li.addEventListener('input',()=>{h.label=li.value;draw()});
+      const del=document.createElement('button');del.textContent='✕';del.style.cssText='font-size:9px;padding:1px 4px;border:1px solid #ccc;border-radius:3px;cursor:pointer';
+      del.onclick=()=>{lg.handles.splice(i,1);buildAxEd();draw()};
+      hb.appendChild(ci);hb.appendChild(ls);hb.appendChild(mk);hb.appendChild(li);hb.appendChild(del);sL.appendChild(hb);
+    });
+    const addH=document.createElement('button');addH.textContent='+ Add handle';addH.className='add-btn';addH.style.cssText='border:1px solid #59a14f;color:#59a14f';
+    addH.onclick=()=>{lg.handles.push({color:'#4e79a7',ls:'-',marker:'none',label:''});buildAxEd();draw()};
+    sL.appendChild(addH);
+  }
+  ed.appendChild(sL);
+}
+
+function draw(){
+  const nr=iv('nrows'),nc=iv('ncols'),hs=fv('hspace'),ws=fv('wspace');
+  const hasCbar=v('cbar-on')&&v('cbar-on').checked;
+  if(hrI.length!==nr)buildRatios('height-ratios',hrI,'row',nr);
+  if(wrI.length!==nc)buildRatios('width-ratios',wrI,'col',nc);
+  buildAxSel();updateCP();renderStops();
+  const hr=gR(hrI),wr=gR(wrI);
+  const cvs=v('canvas');
+  const W=cvs.offsetWidth||420,H=360;
+  cvs.width=W;cvs.height=H;
+  const ctx=cvs.getContext('2d');
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+  const iW=W-PAD.l-PAD.r,iH=H-PAD.t-PAD.b;
+  const tH=hr.reduce((a,b)=>a+b,0),tW=wr.reduce((a,b)=>a+b,0);
+  const hG=nr>1?hs*(iH/(nr+(nr-1)*hs)):0;
+  const wG=nc>1?ws*(iW/(nc+(nc-1)*ws)):0;
+  const cH=hr.map(r=>r/tH*(iH-(nr-1)*hG));
+  const cW=wr.map(r=>r/tW*(iW-(nc-1)*wG));
+  let yO=PAD.t,idx=0,cbR=null;
+  const cRow=hasCbar?iv('cbar-row'):null;
+  for(let r=0;r<nr;r++){
+    let xO=PAD.l;
+    for(let c=0;c<nc;c++){
+      const cw=cW[c],ch=cH[r],cfg=axC[gk(r,c)]||{},col=COLORS[idx%COLORS.length];
+      ctx.fillStyle=col+'22';ctx.strokeStyle=col;ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.roundRect(xO,yO,cw,ch,3);ctx.fill();ctx.stroke();
+      const lblPos=v('lbl-pos').value;
+      if(v('show-lbl').checked){
+        const lbl=getLabel(idx);ctx.fillStyle='#333';ctx.font='bold 9px system-ui';
+        if(lblPos==='tl'){ctx.textAlign='left';ctx.fillText(lbl,xO+4,yO+11);}
+        else if(lblPos==='tr'){ctx.textAlign='right';ctx.fillText(lbl,xO+cw-4,yO+11);}
+        else{ctx.textAlign='left';ctx.fillText(lbl,xO,yO-3);}
+      }
+      ctx.fillStyle='#666';ctx.font='10px system-ui';ctx.textAlign='center';ctx.fillText('ax_'+r+''+c,xO+cw/2,yO+ch/2+4);
+      if(cfg.xlabel){ctx.fillStyle='#333';ctx.font='7px system-ui';ctx.textAlign='center';ctx.fillText(cfg.xlabel,xO+cw/2,yO+ch-3);}
+      if(cfg.ylabel){ctx.save();ctx.translate(xO+9,yO+ch/2);ctx.rotate(-Math.PI/2);ctx.fillStyle='#333';ctx.font='7px system-ui';ctx.textAlign='center';ctx.fillText(cfg.ylabel,0,0);ctx.restore();}
+      if(cfg.shareY&&cfg.shareY.trim()){ctx.fillStyle='#984ea3';ctx.font='7px system-ui';ctx.textAlign='right';ctx.fillText('↔y',xO+cw-3,yO+11);}
+      if(cfg.texts&&cfg.texts.length){ctx.fillStyle='#4e79a7';ctx.font='7px system-ui';ctx.textAlign='left';ctx.fillText('T×'+cfg.texts.length,xO+3,yO+11);}
+      if(cfg.arrows&&cfg.arrows.length){ctx.fillStyle='#e15759';ctx.font='7px system-ui';ctx.textAlign='left';ctx.fillText('A×'+cfg.arrows.length,xO+3,yO+20);}
+      if(cfg.legend&&cfg.legend.show){ctx.fillStyle='#59a14f';ctx.font='7px system-ui';ctx.textAlign='right';ctx.fillText('leg',xO+cw-3,yO+ch-3);}
+      if(hasCbar&&r===cRow&&c===nc-1)cbR={x:xO+cw,y:yO,h:ch};
+      xO+=cw+wG;idx++;
+    }
+    if(hasCbar&&r===cRow&&cbR&&v('cbar-mode').value==='manual'){
+      const gap=fv('cbar-gap')*iW,thick=fv('cbar-thick')*iW;
+      ctx.fillStyle='#88888833';ctx.strokeStyle='#888';ctx.lineWidth=1;
+      ctx.beginPath();ctx.roundRect(cbR.x+gap,cbR.y,thick,cbR.h,2);ctx.fill();ctx.stroke();
+      ctx.fillStyle='#888';ctx.font='7px system-ui';ctx.textAlign='center';
+      ctx.fillText('cbar',cbR.x+gap+thick/2,cbR.y+cbR.h/2+3);
+    }
+    yO+=cH[r]+hG;
+  }
+  genCode(nr,nc,hr,wr,hs,ws,hasCbar);
+}
+
+function genCode(nr,nc,hr,wr,hs,ws,hasCbar){
+  const fw=fv('fig-w'),asp=fv('fig-asp');
+  const fs=iv('rc-fs'),ls=iv('rc-ls'),ts=iv('rc-ts'),lgs=iv('rc-leg');
+  const td=v('rc-td').value,lw=fv('rc-lw'),alw=fv('rc-alw'),dpi=iv('rc-dpi');
+  const showLbl=v('show-lbl').checked,lblPos=v('lbl-pos').value;
+  let L=[];
+  if(hasCbar){L.push('# ── colormap ──');L.push(getCmapCode());L.push('');}
+  L.push('# ── rcParams ──');
+  L.push('plt.rcParams.update({');
+  [`    "font.size": ${fs},`,`    "axes.labelsize": ${ls},`,`    "legend.fontsize": ${lgs},`,
+   `    "xtick.labelsize": ${ts},`,`    "ytick.labelsize": ${ts},`,`    "axes.linewidth": ${alw},`,
+   `    "lines.linewidth": ${lw},`,`    "xtick.direction": "${td}",`,`    "ytick.direction": "${td}",`,
+   '    "xtick.major.size": 3,','    "ytick.major.size": 3,',
+   `    "figure.dpi": ${dpi},`,`    "savefig.dpi": ${dpi},`].forEach(x=>L.push(x));
+  L.push('})');L.push('');
+  const hasCbarCol=hasCbar&&v('cbar-mode').value==='manual';
+  const wrF=hasCbarCol?[...wr,parseFloat(v('cbar-width').value)||0.05]:wr;
+  const ncT=hasCbarCol?nc+1:nc;
+  L.push('# ── figure ──');
+  L.push(`fig_width  = ${fw} / 2.54`);
+  L.push(`fig_height = fig_width * ${asp.toFixed(2)}`);
+  L.push('fig = plt.figure(figsize=(fig_width, fig_height))');L.push('');
+  L.push('# ── GridSpec ──');
+  L.push('gs = gridspec.GridSpec(');
+  L.push(`    ${nr}, ${ncT},`);
+  L.push(`    width_ratios=${JSON.stringify(wrF)},`);
+  L.push(`    height_ratios=${JSON.stringify(hr)},`);
+  L.push(`    hspace=${hs.toFixed(2)}, wspace=${ws.toFixed(2)},`);
+  L.push(')');L.push('');
+  for(let r=0;r<nr;r++) for(let c=0;c<nc;c++){
+    const cfg=axC[gk(r,c)]||{};
+    let ex='';
+    if(cfg.shareX&&cfg.shareX.trim())ex+=`, sharex=${cfg.shareX.trim()}`;
+    if(cfg.shareY&&cfg.shareY.trim())ex+=`, sharey=${cfg.shareY.trim()}`;
+    L.push(`ax_${r}${c} = fig.add_subplot(gs[${r}, ${c}]${ex})`);
+  }
+  L.push('');
+  let idx=0;
+  for(let r=0;r<nr;r++) for(let c=0;c<nc;c++){
+    const cfg=axC[gk(r,c)]||{},ax=`ax_${r}${c}`;
+    if(cfg.xlabel)L.push(`${ax}.set_xlabel('${cfg.xlabel}')`);
+    if(cfg.ylabel)L.push(`${ax}.set_ylabel('${cfg.ylabel}')`);
+    if(cfg.xlim){const p=cfg.xlim.split(',');if(p.length===2)L.push(`${ax}.set_xlim([${p[0].trim()}, ${p[1].trim()}])`);}
+    if(cfg.ylim){const p=cfg.ylim.split(',');if(p.length===2)L.push(`${ax}.set_ylim([${p[0].trim()}, ${p[1].trim()}])`);}
+    if(cfg.xticks==='none')L.push(`${ax}.set_xticks([])`);
+    else if(cfg.xticks==='custom'&&cfg.xticksVal)L.push(`${ax}.set_xticks([${cfg.xticksVal}])`);
+    if(cfg.yticks==='none')L.push(`${ax}.set_yticks([])`);
+    else if(cfg.yticks==='custom'&&cfg.yticksVal)L.push(`${ax}.set_yticks([${cfg.yticksVal}])`);
+    if(cfg.shareY&&cfg.shareY.trim())L.push(`${ax}.tick_params(labelleft=False)`);
+    if(showLbl){
+      const lbl=getLabel(idx);
+      if(lblPos==='tl')L.push(`${ax}.text(0.05, 0.95, '${lbl}', transform=${ax}.transAxes, fontsize=${ls}, fontweight='bold', va='top', ha='left')`);
+      else if(lblPos==='tr')L.push(`${ax}.text(0.95, 0.95, '${lbl}', transform=${ax}.transAxes, fontsize=${ls}, fontweight='bold', va='top', ha='right')`);
+      else L.push(`${ax}.set_title('${lbl}', fontsize=${ls}, pad=4, loc='left')`);
+    }
+    (cfg.texts||[]).forEach(t=>{
+      if(!t.text)return;
+      L.push(`${ax}.text(${t.x||0.05}, ${t.y||0.95}, '${t.text}', transform=${ax}.transAxes, fontsize=${t.fs||10}, fontweight=${t.bold?"'bold'":"'normal'"}, va='${t.va||'top'}', ha='left', color='${t.color||'#000000'}')`);
+    });
+    (cfg.arrows||[]).forEach(ar=>{
+      const lbl=ar.label?`'${ar.label}'`:"''";
+      L.push(`${ax}.annotate(${lbl}, xy=(${ar.xy_x||0.5}, ${ar.xy_y||0.8}), xytext=(${ar.txt_x||0.5}, ${ar.txt_y||0.5}),`);
+      L.push(`    xycoords=${ax}.transAxes, textcoords=${ax}.transAxes,`);
+      L.push(`    arrowprops=dict(arrowstyle='->', color='${ar.color||'black'}', lw=1.2))`);
+    });
+    const lg=cfg.legend;
+    if(lg&&lg.show&&lg.handles&&lg.handles.length>0){
+      L.push('from matplotlib.lines import Line2D');
+      L.push(`_h${r}${c} = [`);
+      lg.handles.forEach(h=>{
+        const mk=h.marker&&h.marker!=='none'?`, marker='${h.marker}'`:'';
+        L.push(`    Line2D([0],[0], color='${h.color||'k'}', lw=1.2, linestyle='${h.ls||'-'}'${mk}, label='${h.label||''}'),`);
+      });
+      L.push(']');
+      L.push(`${ax}.legend(handles=_h${r}${c}, loc='${lg.loc||'upper right'}', fontsize=${lg.fontsize||8}, ncol=${lg.ncol||1}, frameon=${lg.frameon!==false?'True':'False'})`);
+    }
+    idx++;
+  }
+  if(hasCbar){
+    L.push('');L.push('# ── colorbar ──');
+    const mode=v('cbar-mode').value;
+    if(mode==='manual'){
+      const cRow=iv('cbar-row'),gap=fv('cbar-gap'),thick=fv('cbar-thick');
+      L.push('import io');
+      L.push("fig.savefig(io.BytesIO(), bbox_inches='tight')  # trigger layout");
+      L.push(`pos = ax_${cRow}${nc-1}.get_position()`);
+      L.push(`cbar_ax = fig.add_axes([pos.x1 + ${gap.toFixed(3)}, pos.y0, ${thick.toFixed(3)}, pos.height])`);
+      L.push("cbar = fig.colorbar(sc, cax=cbar_ax)");
+      L.push(`cbar.set_label('Label (unit)', labelpad=4, fontsize=${ls})`);
+    } else {
+      const orient=v('cbar-orient').value,loc=v('cbar-loc').value;
+      const pad=fv('cbar-pad'),aspect=iv('cbar-aspect');
+      const axName=v('cbar-ax').value.trim()||'ax_00';
+      L.push(`cbar = plt.colorbar(sc, ax=${axName}, orientation='${orient}', location='${loc}', pad=${pad.toFixed(2)}, aspect=${aspect})`);
+      L.push(`cbar.set_label('Label (unit)', fontsize=${ls})`);
+    }
+  }
+  L.push('');L.push("fig.patch.set_facecolor('white')");
+  L.push("plt.savefig('figure.pdf', bbox_inches='tight')");
+  L.push(`plt.savefig('figure.png', dpi=${dpi}, bbox_inches='tight')`);
+  L.push('plt.show()');
+  v('code-out').textContent=L.join('\n');
+}
+
+function copyCode(){
+  navigator.clipboard.writeText(v('code-out').textContent)
+    .then(()=>{const b=document.querySelector('.btn-blue');b.textContent='Copied!';setTimeout(()=>b.textContent='Copy code',1500)});
+}
+
+function resetAll(){
+  axC={};cstops=[{color:'#000080'},{color:'#ff0000'},{color:'#ffff00'}];
+  ['nrows','ncols'].forEach(id=>{v(id).value=2;v(id+'-v').textContent=2;});
+  v('hspace').value=0.35;v('hspace-v').textContent='0.35';
+  v('wspace').value=0.20;v('wspace-v').textContent='0.20';
+  v('cbar-on').checked=false;v('cbar-body').style.display='none';
+  hrI=[];wrI=[];draw();
+}
+
+draw();
+</script>
+</body>
+</html>
